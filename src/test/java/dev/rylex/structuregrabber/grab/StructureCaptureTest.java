@@ -45,12 +45,13 @@ class StructureCaptureTest {
         ListTag blocks = new ListTag();
         blocks.add(block(position(0, 0, 0), 0));
         blocks.add(block(position(0, 1, 0), 1));
+        blocks.add(block(position(0, 2, 0), 0));
 
         CompoundTag structure = new CompoundTag();
         structure.put("palette", palette);
         structure.put("blocks", blocks);
         structure.put("entities", new ListTag());
-        structure.put("size", position(1, 2, 1));
+        structure.put("size", position(1, 3, 1));
         return NbtUtils.addCurrentDataVersion(structure);
     }
 
@@ -60,16 +61,27 @@ class StructureCaptureTest {
         GrabResult result = StructureCapture.write(directory, "base", structure());
 
         assertEquals(directory.resolve("base.snbt"), result.file());
-        assertEquals(2, result.blocks());
+        assertEquals(3, result.blocks());
         assertEquals(0, result.entities());
 
         CompoundTag parsed = NbtUtils.snbtToStructure(Files.readString(result.file()));
-        assertEquals(2, parsed.getListOrEmpty("blocks").size());
+        assertEquals(3, parsed.getListOrEmpty("blocks").size());
         assertEquals(
                 "minecraft:oak_log",
                 parsed.getListOrEmpty("palette").getCompoundOrEmpty(1).getStringOr("Name", ""));
-        assertEquals(2, parsed.getListOrEmpty("size").getIntOr(1, 0));
+        assertEquals(3, parsed.getListOrEmpty("size").getIntOr(1, 0));
         assertTrue(parsed.contains("DataVersion"));
+    }
+
+    @Test
+    void theWrittenFileCountsEachBlock(@TempDir Path directory) throws IOException, CommandSyntaxException {
+        GrabResult result = StructureCapture.write(directory, "base", structure());
+
+        CompoundTag count =
+                NbtUtils.snbtToStructure(Files.readString(result.file())).getCompoundOrEmpty("count");
+        assertEquals(2, count.size());
+        assertEquals(2, count.getIntOr("minecraft:stone", 0));
+        assertEquals(1, count.getIntOr("minecraft:oak_log", 0));
     }
 
     @Test
