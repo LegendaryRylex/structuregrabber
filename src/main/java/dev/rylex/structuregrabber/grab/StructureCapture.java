@@ -4,9 +4,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.TreeMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
@@ -27,9 +30,23 @@ public final class StructureCapture {
     public static GrabResult write(Path directory, String name, CompoundTag structure) throws IOException {
         int blocks = structure.getList("blocks", Tag.TAG_COMPOUND).size();
         int entities = structure.getList("entities", Tag.TAG_COMPOUND).size();
+        structure.put("count", countBlocks(structure));
         Files.createDirectories(directory);
         Path file = GrabFiles.unique(directory, name);
         Files.writeString(file, NbtUtils.structureToSnbt(structure) + "\n", StandardCharsets.UTF_8);
         return new GrabResult(file, blocks, entities);
+    }
+
+    static CompoundTag countBlocks(CompoundTag structure) {
+        ListTag palette = structure.getList("palette", Tag.TAG_COMPOUND);
+        Map<String, Integer> counts = new TreeMap<>();
+        for (Tag block : structure.getList("blocks", Tag.TAG_COMPOUND)) {
+            String name =
+                    palette.getCompound(((CompoundTag) block).getInt("state")).getString("Name");
+            counts.merge(name, 1, Integer::sum);
+        }
+        CompoundTag count = new CompoundTag();
+        counts.forEach(count::putInt);
+        return count;
     }
 }

@@ -46,12 +46,13 @@ class StructureCaptureTest {
         ListTag blocks = new ListTag();
         blocks.add(block(position(0, 0, 0), 0));
         blocks.add(block(position(0, 1, 0), 1));
+        blocks.add(block(position(0, 2, 0), 0));
 
         CompoundTag structure = new CompoundTag();
         structure.put("palette", palette);
         structure.put("blocks", blocks);
         structure.put("entities", new ListTag());
-        structure.put("size", position(1, 2, 1));
+        structure.put("size", position(1, 3, 1));
         return NbtUtils.addCurrentDataVersion(structure);
     }
 
@@ -61,16 +62,27 @@ class StructureCaptureTest {
         GrabResult result = StructureCapture.write(directory, "base", structure());
 
         assertEquals(directory.resolve("base.snbt"), result.file());
-        assertEquals(2, result.blocks());
+        assertEquals(3, result.blocks());
         assertEquals(0, result.entities());
 
         CompoundTag parsed = NbtUtils.snbtToStructure(Files.readString(result.file()));
-        assertEquals(2, parsed.getList("blocks", Tag.TAG_COMPOUND).size());
+        assertEquals(3, parsed.getList("blocks", Tag.TAG_COMPOUND).size());
         assertEquals(
                 "minecraft:oak_log",
                 parsed.getList("palette", Tag.TAG_COMPOUND).getCompound(1).getString("Name"));
-        assertEquals(2, parsed.getList("size", Tag.TAG_INT).getInt(1));
+        assertEquals(3, parsed.getList("size", Tag.TAG_INT).getInt(1));
         assertTrue(parsed.contains("DataVersion", Tag.TAG_INT));
+    }
+
+    @Test
+    void theWrittenFileCountsEachBlock(@TempDir Path directory) throws IOException, CommandSyntaxException {
+        GrabResult result = StructureCapture.write(directory, "base", structure());
+
+        CompoundTag count =
+                NbtUtils.snbtToStructure(Files.readString(result.file())).getCompound("count");
+        assertEquals(2, count.size());
+        assertEquals(2, count.getInt("minecraft:stone"));
+        assertEquals(1, count.getInt("minecraft:oak_log"));
     }
 
     @Test
